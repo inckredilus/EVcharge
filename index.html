@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>EV Charge Logger — Step 1</title>
+<style>
+  /* Mobile-first, simple aesthetic */
+  :root { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; --blue:#2563eb; --muted:#666; --card:#fff; }
+  body { margin:0; padding:12px; background:#f4f7fb; color:#111; }
+  .container { max-width:900px; margin:0 auto; }
+  .card { background:var(--card); border-radius:10px; padding:12px; box-shadow:0 8px 24px rgba(20,30,60,0.06); margin-bottom:12px; }
+  header { display:flex; gap:8px; justify-content:center; margin-bottom:10px; }
+  button.app-btn { padding:10px 14px; border-radius:10px; border:0; font-weight:700; cursor:pointer; }
+  button.start { background:var(--blue); color:white; }
+  button.complete { background:#10b981; color:white; }
+  button.show { background:#f59e0b; color:white; }
+  form { margin-top:8px; }
+  label { display:block; font-size:13px; margin-top:8px; color:#1f2937; }
+  .row { display:flex; gap:8px; margin-top:6px; }
+  .col { flex:1; }
+  input[type="text"], input[type="number"], input[type="tel"] {
+    width:100%; padding:10px; border-radius:8px; border:1px solid #e6eef9; font-size:15px; background:#fbfdff;
+  }
+  .actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  button.ghost { background:#eef2ff; color:var(--blue); font-weight:700; border-radius:8px; padding:10px; border:0; }
+  button.warn { background:#fee2e2; color:#991b1b; font-weight:700; padding:10px; border-radius:8px; border:0; }
+  .small { font-size:13px; color:var(--muted); margin-top:6px; }
+  .message { margin-top:8px; font-weight:700; color:#064e3b; }
+  .error { margin-top:8px; font-weight:700; color:#b91c1c; }
+  .summary { margin-top:10px; padding:8px; border-radius:8px; background:#f8fafc; font-family:monospace; white-space:pre-wrap; }
+  .list { margin-top:8px; }
+  .list-item { padding:8px; border-bottom:1px solid #eef6ff; }
+  .list-item .meta { font-size:13px; color:var(--muted); margin-top:4px; }
+  @media (max-width:520px) { .row { flex-direction: column; } header { flex-direction:column; } }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h2 style="margin:0 0 8px 0">EV Charge Logger — Step 1</h2>
+      <div class="small">Choose what you want to do: start a new session, complete a pending one, or show stored entries.</div>
+
+      <!-- Home mode buttons only at initial view -->
+      <header id="homeButtons">
+        <button id="btnStart" class="app-btn start">START</button>
+        <button id="btnComplete" class="app-btn complete">COMPLETE</button>
+        <button id="btnShow" class="app-btn show">SHOW</button>
+      </header>
+
+      <!-- Status messages -->
+      <div id="msg" class="message" role="status" aria-live="polite"></div>
+      <div id="err" class="error" role="alert" aria-live="assertive" style="display:none"></div>
+
+      <!-- The main form used both for START and COMPLETE (same fields) -->
+      <form id="evForm" style="display:none" onsubmit="return false;">
+        <!-- Start fields -->
+        <label>Start date (mm/dd)
+          <input id="startDate" type="text" placeholder="e.g. 07/21" inputmode="numeric" />
+        </label>
+
+        <div class="row">
+          <div class="col">
+            <label>Start time (hh:mm)
+              <input id="startTime" type="text" placeholder="e.g. 08:30" inputmode="numeric" />
+            </label>
+          </div>
+          <div class="col">
+            <label>Start battery % (remaining)
+              <input id="startPct" type="number" min="0" max="100" placeholder="e.g. 42" />
+            </label>
+          </div>
+        </div>
+
+        <label>Start range (km)
+          <input id="startRange" type="number" placeholder="e.g. 220" />
+        </label>
+
+        <label>Mileage / odometer (km) — optional at start (showed as "..." when missing)
+          <input id="mileage" type="number" placeholder="e.g. 128450" />
+        </label>
+
+        <hr style="margin:12px 0; border:none; border-top:1px solid #eef5ff;" />
+
+        <!-- End fields -->
+        <label>End date (mm/dd)
+          <input id="endDate" type="text" placeholder="e.g. 07/21" inputmode="numeric" />
+        </label>
+
+        <div class="row">
+          <div class="col">
+            <label>End time (hh:mm)
+              <input id="endTime" type="text" placeholder="e.g. 09:10" inputmode="numeric" />
+            </label>
+          </div>
+          <div class="col">
+            <label>Charged % (new)
+              <input id="endPct" type="number" min="0" max="100" placeholder="e.g. 82" />
+            </label>
+          </div>
+        </div>
+
+        <label>End range (km)
+          <input id="endRange" type="number" placeholder="e.g. 360" />
+        </label>
+
+        <div class="actions">
+          <button id="submitBtn" class="app-btn start" type="button">Submit</button>
+          <button id="cancelBtn" class="ghost" type="button">CANCEL</button>
+          <button id="deletePendingBtn" class="warn" type="button" style="display:none">Delete pending start</button>
+        </div>
+
+        <!-- summary of what will be submitted -->
+        <div id="preview" class="summary" style="display:none"></div>
+      </form>
+
+      <!-- SHOW area: pending + history -->
+      <div id="showArea" style="display:none">
+        <div class="card" style="margin-top:10px">
+          <strong>Pending session (if any)</strong>
+          <div id="pendingBox" class="summary small" style="min-height:40px">No pending session.</div>
+        </div>
+
+        <div class="card" style="margin-top:8px">
+          <strong>History (newest first)</strong>
+          <div id="historyList" class="list small"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+/*
+  EV Charge Logger — Step 1 implementation
+
+  - Three modes: START, COMPLETE, SHOW
+  - Single pending session stored at localStorage.currentSession
+  - Completed sessions appended to localStorage.history (array)
+  - Dates input as mm/dd and hh:mm; saved internally as ISO "YYYY-MM-DDTHH:MM"
+  - Mileage may be empty at start; displayed as "..."
+  - Newest-first history
+  - Functions and comments used throughout for clarity
+*/
+
+/* ====== Keys for localStorage ====== */
+const LS_KEYS = { pending: 'currentSession', history: 'history' };
+
+/* ====== Utility functions ====== */
+
+/** return current year as number */
+function currentYear(){ return new Date().getFullYear(); }
+
+/** parse mm/dd string -> {mm, dd} or null */
+function parseMmDd(mmdd){
+  if(!mmdd) return null;
+  const parts = mmdd.trim().split('/');
+  if(parts.length !== 2) return null;
+  const mm = parseInt(parts[0],10), dd = parseInt(parts[1],10);
+  if(Number.isNaN(mm) || Number.isNaN(dd)) return null;
+  if(mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+  return {mm, dd};
+}
+
+/** parse hh:mm -> {hh, mm} or null */
+function parseHhMm(hhmm){
+  if(!hhmm) return null;
+  const parts = hhmm.trim().split(':');
+  if(parts.length !== 2) return null;
+  const hh = parseInt(parts[0],10), mm = parseInt(parts[1],10);
+  if(Number.isNaN(hh) || Number.isNaN(mm)) return null;
+  if(hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+  return {hh, mm};
+}
+
+/** Construct local ISO-like string YYYY-MM-DDTHH:MM from mm/dd and hh:mm (uses current year) */
+function buildIsoLocal(mmdd, hhmm){
+  const d = parseMmDd(mmdd);
+  const t = parseHhMm(hhmm);
+  if(!d || !t) return null;
+  const y = currentYear();
+  const mm = String(d.mm).padStart(2,'0');
+  const dd = String(d.dd).padStart(2,'0');
+  const hh = String(t.hh).padStart(2,'0');
+  const min = String(t.mm).padStart(2,'0');
+  return `${y}-${mm}-${dd}T${hh}:${min}`;
+}
+
+/** Format mm/dd convenience for display from ISO string (expects 'YYYY-MM-DDTHH:MM' or null) */
+function isoToMmDd(iso){
+  if(!iso) return '';
+  // iso like '2025-07-21T08:30'
+  const parts = iso.split('T')[0].split('-');
+  if(parts.length !== 3) return '';
+  return `${String(parts[1]).padStart(2,'0')}/${String(parts[2]).padStart(2,'0')}`;
+}
+
+/** Extract HH:MM from ISO */
+function isoToHhMm(iso){
+  if(!iso) return '';
+  const parts = iso.split('T');
+  if(parts.length < 2) return '';
+  return parts[1].slice(0,5);
+}
+
+/** Safely read JSON from localStorage */
+function lsRead(key){
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }
+  catch(e){ console.error('lsRead error', e); return null; }
+}
+
+/** Write JSON to localStorage */
+function lsWrite(key, obj){
+  localStorage.setItem(key, JSON.stringify(obj));
+}
+
+/** Append completed session to history array in localStorage */
+function appendHistory(session){
+  const arr = lsRead(LS_KEYS.history) || [];
+  arr.push(session);
+  lsWrite(LS_KEYS.history, arr);
+}
+
+/** Remove pending session from storage */
+function clearPending(){ localStorage.removeItem(LS_KEYS.pending); }
+
+/** Read pending session (or null) */
+function readPending(){ return lsRead(LS_KEYS.pending); }
+
+/* ====== DOM references ====== */
+const el = {
+  homeButtons: document.getElementById('homeButtons'),
+  btnStart: document.getElementById('btnStart'),
+  btnComplete: document.getElementById('btnComplete'),
+  btnShow: document.getElementById('btnShow'),
+  msg: document.getElementById('msg'),
+  err: document.getElementById('err'),
+
+  evForm: document.getElementById('evForm'),
+  startDate: document.getElementById('startDate'),
+  startTime: document.getElementById('startTime'),
+  startPct: document.getElementById('startPct'),
+  startRange: document.getElementById('startRange'),
+  mileage: document.getElementById('mileage'),
+  endDate: document.getElementById('endDate'),
+  endTime: document.getElementById('endTime'),
+  endPct: document.getElementById('endPct'),
+  endRange: document.getElementById('endRange'),
+  submitBtn: document.getElementById('submitBtn'),
+  cancelBtn: document.getElementById('cancelBtn'),
+  deletePendingBtn: document.getElementById('deletePendingBtn'),
+  preview: document.getElementById('preview'),
+
+  showArea: document.getElementById('showArea'),
+  pendingBox: document.getElementById('pendingBox'),
+  historyList: document.getElementById('historyList')
+};
+
+/* ====== Mode handling ====== */
+let MODE = 'HOME'; // HOME | START | COMPLETE | SHOW
+
+/** Set UI mode and show/hide relevant parts */
+function setMode(mode){
+  MODE = mode;
+  el.err.style.display = 'none';
+  el.msg.textContent = '';
+  // hide everything, selectively show
+  el.evForm.style.display = 'none';
+  el.showArea.style.display = 'none';
+  el.homeButtons.style.display = 'flex';
+  el.deletePendingBtn.style.display = 'none';
+  el.preview.style.display = 'none';
+
+  if(mode === 'HOME'){
+    // show only home buttons
+    el.homeButtons.style.display = 'flex';
+  } else if(mode === 'START'){
+    el.homeButtons.style.display = 'none';
+    el.evForm.style.display = 'block';
+    el.deletePendingBtn.style.display = 'none';
+    // empty the form for new start
+    clearFormFields();
+    prefillStartDefaults();
+    el.submitBtn.textContent = 'Save start';
+    el.preview.style.display = 'none';
+    el.msg.textContent = 'Start mode — enter start fields (1–4). Mileage optional.';
+  } else if(mode === 'COMPLETE'){
+    el.homeButtons.style.display = 'none';
+    el.evForm.style.display = 'block';
+    el.deletePendingBtn.style.display = 'inline-block';
+    el.submitBtn.textContent = 'Complete session';
+    // load pending into form for editing
+    const pending = readPending();
+    if(!pending){
+      showError('No pending start session exists. Press START to create one.');
+      setMode('HOME');
+      return;
+    }
+    populateFormFromPending(pending);
+    prefillEndDefaults();
+    el.msg.textContent = 'Complete mode — edit fields if needed and fill end fields (6–9).';
+  } else if(mode === 'SHOW'){
+    el.homeButtons.style.display = 'none';
+    el.showArea.style.display = 'block';
+    renderShowArea();
+  }
+}
+
+/* ====== Form helpers ====== */
+
+/** Clear visible form fields (does not change storage) */
+function clearFormFields(){
+  el.startDate.value = '';
+  el.startTime.value = '';
+  el.startPct.value = '';
+  el.startRange.value = '';
+  el.mileage.value = '';
+  el.endDate.value = '';
+  el.endTime.value = '';
+  el.endPct.value = '';
+  el.endRange.value = '';
+}
+
+/** Prefill start fields with current local mm/dd and hh:mm for convenience */
+function prefillStartDefaults(){
+  const now = new Date();
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const dd = String(now.getDate()).padStart(2,'0');
+  const hh = String(now.getHours()).padStart(2,'0');
+  const min = String(now.getMinutes()).padStart(2,'0');
+  el.startDate.value = `${mm}/${dd}`;
+  el.startTime.value = `${hh}:${min}`;
+}
+
+/** Prefill end defaults to now (used in COMPLETE mode for convenience) */
+function prefillEndDefaults(){
+  const now = new Date();
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const dd = String(now.getDate()).padStart(2,'0');
+  const hh = String(now.getHours()).padStart(2,'0');
+  const min = String(now.getMinutes()).padStart(2,'0');
+  // if end fields empty, fill them with current
+  if(!el.endDate.value) el.endDate.value = `${mm}/${dd}`;
+  if(!el.endTime.value) el.endTime.value = `${hh}:${min}`;
+}
+
+/** Put pending session values into form for editing (complete mode) */
+function populateFormFromPending(pending){
+  // pending stores ISO internally for dates; if not present we allow fallback to mm/dd inputs
+  if(pending.startISO){
+    el.startDate.value = isoToMmDd(pending.startISO);
+    el.startTime.value = isoToHhMm(pending.startISO);
+  } else {
+    el.startDate.value = pending.startDate || '';
+    el.startTime.value = pending.startTime || '';
+  }
+  el.startPct.value = pending.startPct ?? '';
+  el.startRange.value = pending.startRange ?? '';
+  el.mileage.value = pending.mileage ?? '';
+  // end fields may be null
+  if(pending.endISO){
+    el.endDate.value = isoToMmDd(pending.endISO);
+    el.endTime.value = isoToHhMm(pending.endISO);
+  } else {
+    el.endDate.value = pending.endDate || '';
+    el.endTime.value = pending.endTime || '';
+  }
+  el.endPct.value = pending.endPct ?? '';
+  el.endRange.value = pending.endRange ?? '';
+}
+
+/* ====== Validation logic ====== */
+
+/** Determine whether visible form has any end fields entered */
+function anyEndFieldsEntered(){
+  return (el.endDate.value.trim() || el.endTime.value.trim() || el.endPct.value.trim() || el.endRange.value.trim());
+}
+
+/** Determine if start fields (1-4) are filled */
+function startFieldsFilled(){
+  return (el.startDate.value.trim() && el.startTime.value.trim() &&
+          el.startPct.value.trim() && el.startRange.value.trim());
+}
+
+/** Determine if end fields (6-9) are all filled */
+function endFieldsAllFilled(){
+  return (el.endDate.value.trim() && el.endTime.value.trim() &&
+          el.endPct.value.trim() && el.endRange.value.trim());
+}
+
+/** Form validator called on submit - returns object {valid:boolean, mode:'start'|'full'|'complete', reason:''} */
+function validateSubmission(currentMode){
+  // if currentMode === 'START' we treat submission as start or full
+  // if currentMode === 'COMPLETE' we require endFieldsAllFilled() to complete
+  // if any end field partially filled -> either require all or treat as invalid depending on mode
+
+  // Basic start population check
+  if(!startFieldsFilled()){
+    return { valid:false, reason:'Start fields (1–4) are required.' };
+  }
+
+  const endEntered = anyEndFieldsEntered();
+  const endAll = endFieldsAllFilled();
+
+  if(currentMode === 'START'){
+    if(!endEntered){
+      // pure start entry: allowed
+      return { valid:true, mode:'start' };
+    } else {
+      // user started entering end fields: require all 9 for a full entry
+      if(endAll){
+        return { valid:true, mode:'full' };
+      } else {
+        return { valid:false, reason:'You started entering end fields — please fill all end fields (6–9) to submit as a full entry.' };
+      }
+    }
+  } else if(currentMode === 'COMPLETE'){
+    // Pending must exist (handled in setMode)
+    if(!endAll){
+      return { valid:false, reason:'To complete a pending session, please fill all end fields (6–9).' };
+    }
+    return { valid:true, mode:'complete' };
+  }
+  return { valid:false, reason:'Invalid mode' };
+}
+
+/* ====== Submit handling ====== */
+
+/** Build the session object from form inputs:
+ *  - include startISO and endISO if parsable
+ *  - mileage stored as null if empty
+ */
+function buildSessionObjectFromForm(){
+  const startISO = buildIsoLocal(el.startDate.value.trim(), el.startTime.value.trim());
+  const endISO = el.endDate.value.trim() && el.endTime.value.trim() ? buildIsoLocal(el.endDate.value.trim(), el.endTime.value.trim()) : null;
+  const mileageVal = el.mileage.value.trim() === '' ? null : Number(el.mileage.value.trim());
+  return {
+    startDate: el.startDate.value.trim(),
+    startTime: el.startTime.value.trim(),
+    startISO: startISO,
+    startPct: el.startPct.value.trim() ? Number(el.startPct.value.trim()) : null,
+    startRange: el.startRange.value.trim() ? Number(el.startRange.value.trim()) : null,
+    mileage: mileageVal,
+    endDate: el.endDate.value.trim() || null,
+    endTime: el.endTime.value.trim() || null,
+    endISO: endISO,
+    endPct: el.endPct.value.trim() ? Number(el.endPct.value.trim()) : null,
+    endRange: el.endRange.value.trim() ? Number(el.endRange.value.trim()) : null,
+    savedAt: new Date().toISOString()
+  };
+}
+
+/** Format the session summary line as requested:
+ * mm/dd mileage hh:mm-hh:mm startPct-endPct% startRange-endRange
+ * use "..." for missing mileage
+ */
+function formatSummary(session){
+  const sDate = session.startDate || (session.startISO ? isoToMmDd(session.startISO) : '');
+  const sTime = session.startTime || (session.startISO ? isoToHhMm(session.startISO) : '');
+  const eTime = session.endTime || (session.endISO ? isoToHhMm(session.endISO) : '');
+  const startPct = session.startPct ?? '';
+  const endPct = session.endPct ?? '';
+  const startRange = session.startRange ?? '';
+  const endRange = session.endRange ?? '';
+  const mileageStr = (session.mileage === null || session.mileage === undefined || session.mileage === '') ? '...' : String(session.mileage);
+
+  // build hh:mm-hh:mm (if no endTime, show hh:mm-)
+  const timeRange = `${sTime}-${eTime || ''}`;
+  const pctRange = `${startPct === '' ? '' : startPct}-${endPct === '' ? '' : endPct}%`;
+  const rangeRange = `${startRange === '' ? '' : startRange}-${endRange === '' ? '' : endRange}`;
+
+  return `${sDate} ${mileageStr} ${timeRange} ${pctRange} ${rangeRange}`;
+}
+
+/** Show preview in the UI for user confirmation before finalizing */
+function showPreview(session){
+  el.preview.style.display = 'block';
+  el.preview.textContent = formatSummary(session);
+}
+
+/** Submit handler for form */
+function onSubmitClicked(){
+  clearMessages();
+  const validation = validateSubmission(MODE);
+  if(!validation.valid){
+    showError(validation.reason);
+    return;
+  }
+
+  const sessionObj = buildSessionObjectFromForm();
+
+  if(validation.mode === 'start'){
+    // Ensure there is no existing pending session
+    if(readPending()){
+      showError('A pending start session already exists — complete or delete it before starting a new one.');
+      return;
+    }
+    // Save as pending session (start-phase)
+    // If mileage is empty, it will be stored as null and shown later as "..."
+    lsWrite(LS_KEYS.pending, sessionObj);
+    showMessage('Start session saved.');
+    showPreview(sessionObj);
+    // After saving start, return to HOME
+    setTimeout(()=>setMode('HOME'), 900);
+    return;
+  }
+
+  if(validation.mode === 'full'){
+    // Full entry submitted in START mode: append directly to history (no pending left)
+    appendHistory(sessionObj);
+    clearPending();
+    showMessage('Full session (start+end) saved to history.');
+    showPreview(sessionObj);
+    setMode('HOME');
+    return;
+  }
+
+  if(validation.mode === 'complete'){
+    // Completing existing pending session
+    const pending = readPending();
+    if(!pending){
+      showError('No pending session found to complete.');
+      return;
+    }
+
+    // Merge pending start with end values from form (allow editing of start fields)
+    const completed = buildSessionObjectFromForm();
+    // Ensure we have a startISO if pending had it; if user changed start fields we honor them
+    if(!completed.startISO && pending.startISO) completed.startISO = pending.startISO;
+    // Append to history and clear pending
+    appendHistory(completed);
+    clearPending();
+    showMessage('Pending session completed and moved to history.');
+    showPreview(completed);
+    setMode('HOME');
+    return;
+  }
+}
+
+/* ====== Cancel and Delete ====== */
+
+/** CANCEL: clear currently entered fields (does not change storage), return to HOME */
+function onCancelClicked(){
+  clearFormFields();
+  setMode('HOME');
+  showMessage('Cancelled — form cleared (storage unchanged).');
+}
+
+/** Delete pending session from storage */
+function onDeletePendingClicked(){
+  if(!readPending()){
+    showError('No pending session to delete.');
+    return;
+  }
+  if(!confirm('Delete the pending start session? This cannot be undone.')) return;
+  clearPending();
+  clearFormFields();
+  setMode('HOME');
+  showMessage('Pending start session deleted.');
+}
+
+/* ====== SHOW area rendering (pending + history) ====== */
+
+function renderShowArea(){
+  // pending
+  const pending = readPending();
+  if(!pending){
+    el.pendingBox.textContent = 'No pending session.';
+  } else {
+    el.pendingBox.textContent = formatSummary(pending);
+  }
+  // history newest-first
+  const arr = lsRead(LS_KEYS.history) || [];
+  if(arr.length === 0){
+    el.historyList.innerHTML = '<div class="list-item">No history yet.</div>';
+  } else {
+    // create elements newest-first
+    const reversed = arr.slice().reverse();
+    el.historyList.innerHTML = '';
+    reversed.forEach((session, idx) => {
+      const div = document.createElement('div');
+      div.className = 'list-item';
+      div.innerHTML = `<div style="font-weight:700">${formatSummary(session)}</div>
+                       <div class="meta">Saved: ${session.savedAt || ''}</div>`;
+      el.historyList.appendChild(div);
+    });
+  }
+}
+
+/* ====== Messages ====== */
+
+function clearMessages(){
+  el.msg.textContent = '';
+  el.err.style.display = 'none';
+  el.err.textContent = '';
+}
+
+function showMessage(txt){
+  el.msg.textContent = txt;
+  el.err.style.display = 'none';
+  el.err.textContent = '';
+  setTimeout(()=>{ if(MODE==='HOME') el.msg.textContent=''; }, 3000);
+}
+
+function showError(txt){
+  el.err.style.display = 'block';
+  el.err.textContent = txt;
+  el.msg.textContent = '';
+}
+
+/* ====== Event bindings ====== */
+
+el.btnStart.addEventListener('click', () => {
+  // Only allowed if no pending exists
+  if(readPending()){
+    showError('A pending start session already exists — complete it or delete it before starting a new one.');
+    return;
+  }
+  setMode('START');
+});
+
+el.btnComplete.addEventListener('click', () => {
+  if(!readPending()){
+    showError('No pending start session exists to complete.');
+    return;
+  }
+  setMode('COMPLETE');
+});
+
+el.btnShow.addEventListener('click', () => {
+  setMode('SHOW');
+});
+
+el.submitBtn.addEventListener('click', onSubmitClicked);
+el.cancelBtn.addEventListener('click', onCancelClicked);
+el.deletePendingBtn.addEventListener('click', onDeletePendingClicked);
+
+/* ====== Initialize page ====== */
+(function init(){
+  // Show Home by default
+  setMode('HOME');
+})();
+</script>
+
+</body>
+</html>
