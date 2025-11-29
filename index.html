@@ -1,95 +1,14 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EV Charge Log</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EV Charge Logger</title>
+  <link rel="icon" href="/vite.svg" />
 </head>
-
 <body>
-
-<div class="container">
-    <h1>EV Charge Log</h1>
-
-    <!-- MAIN BUTTONS -->
-    <div id="homeButtons">
-        <button onclick="enterStartMode()">START</button>
-        <button onclick="enterCompleteMode()">COMPLETE</button>
-        <button onclick="showHistory()">SHOW</button>
-    </div>
-
-    <!-- MESSAGE AREA -->
-    <p id="message" class="message"></p>
-
-    <!-- FORM AREA -->
-    <form id="chargeForm" class="hidden">
-        <h2 id="formTitle">Start Charging</h2>
-
-        <div class="formRow">
-            <label>Start Date</label>
-            <input id="startDate" type="date">
-        </div>
-
-        <div class="formRow">
-            <label>Start Time</label>
-            <input id="startTime" type="time">
-        </div>
-
-        <div class="formRow">
-            <label>Start %</label>
-            <input id="startPct" type="number" min="0" max="100">
-        </div>
-
-        <div class="formRow">
-            <label>Start Range (km)</label>
-            <input id="startRange" type="number" min="0">
-        </div>
-
-        <div class="formRow">
-            <label>Mileage (km)</label>
-            <input id="Mileage" type="number" min="0" placeholder="Optional in START">
-        </div>
-
-        <hr>
-
-        <div class="formRow">
-            <label>End Date</label>
-            <input id="endDate" type="date">
-        </div>
-
-        <div class="formRow">
-            <label>End Time</label>
-            <input id="endTime" type="time">
-        </div>
-
-        <div class="formRow">
-            <label>End %</label>
-            <input id="endPct" type="number" min="0" max="100">
-        </div>
-
-        <div class="formRow">
-            <label>End Range (km)</label>
-            <input id="endRange" type="number" min="0">
-        </div>
-
-        <div class="formRow">
-            <label>Consumption (kWh)</label>
-            <input id="Consumption" type="number" step="0.1" min="0">
-        </div>
-
-        <div class="buttonRow">
-            <button type="button" onclick="submitForm()">SUBMIT</button>
-            <button type="button" onclick="cancelForm()">CANCEL</button>
-            <button id="deleteStartBtn" type="button" onclick="deletePendingStart()" class="hidden">DELETE START</button>
-        </div>
-    </form>
-
-    <!-- SHOW AREA -->
-    <div id="showArea" class="hidden"></div>
-
-</div>
-
-<script src="app.js"></script>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
+
