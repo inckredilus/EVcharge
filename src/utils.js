@@ -1,7 +1,9 @@
-// Utility functions for storage, iso handling and validation
+/*
+ utils.js
+ Utility functions for EVcharge: localStorage, parsing, ISO build, validators.
+*/
 export const LS_KEY = "evcharge_logs";
 
-/** load logs array from localStorage (empty array if none) */
 export function loadLogs() {
   try {
     const raw = localStorage.getItem(LS_KEY);
@@ -12,25 +14,21 @@ export function loadLogs() {
   }
 }
 
-/** save logs array to localStorage */
 export function saveLogs(arr) {
   localStorage.setItem(LS_KEY, JSON.stringify(arr));
 }
 
-/** get last log (or null) */
 export function getLastLog() {
   const arr = loadLogs();
   return arr.length ? arr[arr.length - 1] : null;
 }
 
-/** append new log (push) */
 export function appendLog(obj) {
   const arr = loadLogs();
   arr.push(obj);
   saveLogs(arr);
 }
 
-/** replace last log */
 export function replaceLastLog(obj) {
   const arr = loadLogs();
   if (arr.length) arr[arr.length - 1] = obj;
@@ -38,7 +36,6 @@ export function replaceLastLog(obj) {
   saveLogs(arr);
 }
 
-/** remove last log */
 export function removeLastLog() {
   const arr = loadLogs();
   if (arr.length) {
@@ -47,7 +44,6 @@ export function removeLastLog() {
   }
 }
 
-/** parse mm/dd -> {mm,dd} or null */
 export function parseMmDd(mmdd) {
   if (!mmdd) return null;
   const p = mmdd.trim().split("/");
@@ -57,7 +53,6 @@ export function parseMmDd(mmdd) {
   return { mm, dd };
 }
 
-/** parse hh:mm -> {hh,mm} or null */
 export function parseHhMm(hhmm) {
   if (!hhmm) return null;
   const p = hhmm.trim().split(":");
@@ -67,7 +62,6 @@ export function parseHhMm(hhmm) {
   return { hh, mm };
 }
 
-/** build local ISO-like string YYYY-MM-DDTHH:MM if parsable, otherwise null */
 export function buildIsoLocal(mmdd, hhmm) {
   const d = parseMmDd(mmdd);
   const t = parseHhMm(hhmm);
@@ -80,7 +74,6 @@ export function buildIsoLocal(mmdd, hhmm) {
   return `${y}-${mm}-${dd}T${hh}:${min}`;
 }
 
-/** iso 'YYYY-MM-DDTHH:MM' -> mm/dd */
 export function isoToMmDd(iso) {
   if (!iso) return "";
   const parts = String(iso).split("T")[0].split("-");
@@ -88,7 +81,6 @@ export function isoToMmDd(iso) {
   return `${String(parts[1]).padStart(2, "0")}/${String(parts[2]).padStart(2, "0")}`;
 }
 
-/** iso 'YYYY-MM-DDTHH:MM' -> HH:MM */
 export function isoToHhMm(iso) {
   if (!iso) return "";
   const p = String(iso).split("T");
@@ -96,7 +88,6 @@ export function isoToHhMm(iso) {
   return p[1].slice(0, 5);
 }
 
-/** returns true if a log is pending start (all end fields empty) */
 export function isPendingStart(log) {
   if (!log) return false;
   const endFields = ["endDate", "endTime", "endPct", "endRange", "Consumption"];
@@ -106,7 +97,6 @@ export function isPendingStart(log) {
   return true;
 }
 
-/** returns true if log is a complete entry (all start+end fields non-empty) */
 export function isCompleteLog(log) {
   if (!log) return false;
   const startReq = ["startDate", "startTime", "startPct", "startRange", "Mileage"];

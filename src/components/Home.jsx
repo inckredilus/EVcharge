@@ -1,18 +1,12 @@
 import React from "react";
-import { getLastLog, isPendingStart, isCompleteLog } from "../utils.js";
+import { isPendingStart, isCompleteLog } from "../utils.js";
 
-/*
- Home shows three buttons and an info text below them.
- Buttons enabled/disabled depending on last log state.
-*/
 export default function Home({ goStart, goComplete, goShow, last, refreshLogs }) {
-  // Evaluate state
-  const lastLog = last; // passed from App
+  const lastLog = last;
   const hasAny = !!lastLog;
   const pending = lastLog ? isPendingStart(lastLog) : false;
   const complete = lastLog ? isCompleteLog(lastLog) : false;
 
-  // Determine button enabled/disabled and info text
   let startEnabled = false;
   let completeEnabled = false;
   let showEnabled = false;
@@ -34,7 +28,6 @@ export default function Home({ goStart, goComplete, goShow, last, refreshLogs })
     showEnabled = true;
     infoText = "Ready to start a new charging record.";
   } else {
-    // fallback - treat as ready to start
     startEnabled = true;
     completeEnabled = false;
     showEnabled = true;
@@ -63,7 +56,6 @@ export default function Home({ goStart, goComplete, goShow, last, refreshLogs })
   );
 }
 
-/* Compact inline summary. Keep simple. */
 function formatSummary(e) {
   if (!e) return "";
   const sDate = e.startDate && e.startDate.indexOf("T") !== -1 ? e.startDate.split("T")[0] : e.startDate;

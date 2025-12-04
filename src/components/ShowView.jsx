@@ -1,12 +1,6 @@
 import React from "react";
 import { loadLogs, removeLastLog } from "../utils.js";
 
-/*
- ShowView:
- - Displays pending (if any) and history (newest-first).
- - BACK button: returns to caller (App) which will direct to COMPLETE or START as appropriate.
- - DELETE allows deleting the last record and returns home.
-*/
 export default function ShowView({ onBack, onDelete }) {
   const logs = loadLogs();
   const last = logs.length ? logs[logs.length - 1] : null;
