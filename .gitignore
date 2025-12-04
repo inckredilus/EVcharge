@@ -1,0 +1,51 @@
+# ---------------------------
+# EVcharge React/Vite project
+# ---------------------------
+
+# Node modules
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Backup files from update script
+*.bak
+backup_*/
+*_backup*/
+
+# Temporary files created during updates/tests
+temp/
+tmp/
+.cache/
+vite.config.ts.timestamp*
+
+# Editor-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Lock files (optional)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Optional: ignore dev tools folder
+#tools/
+#!tools/update_evcharge.sh
