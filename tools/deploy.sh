@@ -1,18 +1,36 @@
-#!/usr/bin/env bash
-set -e
+#!/bin/bash
 
-echo "🔧 Building Vite app..."
-npm run build
+# ---- ENVIRONMENT CHECK ----
+is_windows() {
+    case "$(uname -s)" in
+        MINGW*|MSYS*|CYGWIN*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
 
-echo "📦 Creating dist.zip..."
-rm -f dist.zip
-#zip -r dist.zip dist
-tar -a -c -f dist.zip dist
+if ! is_windows; then
+    echo "❌ ERROR: deploy.sh must be run on Windows (Git Bash / VSCode)."
+    exit 1
+fi
 
-ONEDRIVE_PATH="/c/Users/Admin/OneDrive/Prog/Share/EVcharge/"
+echo "✔ Environment OK: Windows detected"
 
-echo "🔁 Copying dist.zip to OneDrive share folder..."
-cp dist.zip "$ONEDRIVE_PATH"
+# ---- PATH CONFIG ----
+ONEDRIVE_PATH="/c/Users/Admin/OneDrive/Prog/Share/EVcharge"
+ZIP_NAME="evcharge_dist.zip"
 
-echo "✅ deploy.sh finished successfully!"
-echo "➡️  dist.zip is now in OneDrive: Prog/Share"
+# ---- BUILD PROJECT ----
+echo "🏗  Building project..."
+npm run build || { echo "❌ Build failed"; exit 1; }
+
+# ---- PACKAGE dist/ ----
+echo "📦 Creating ZIP archive..."
+mkdir -p "$ONEDRIVE_PATH"
+
+cd dist || { echo "❌ dist/ folder missing"; exit 1; }
+tar -czf "$ONEDRIVE_PATH/$ZIP_NAME" ./*
+cd ..
+
+echo "✔ ZIP stored at: $ONEDRIVE_PATH/$ZIP_NAME"
+echo "➡️ Transfer this ZIP to your phone via OneDrive"
+
