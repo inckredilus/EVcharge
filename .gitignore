@@ -49,3 +49,6 @@ pnpm-lock.yaml
 # Optional: ignore dev tools folder
 #tools/
 #!tools/update_evcharge.sh
+
+# Adding zip files to be ignored
+*.zip
