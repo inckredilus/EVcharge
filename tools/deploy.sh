@@ -15,22 +15,31 @@ fi
 
 echo "✔ Environment OK: Windows detected"
 
-# ---- PATH CONFIG ----
+# Path inside Windows (Git Bash / VS Code terminal)
 ONEDRIVE_PATH="/c/Users/Admin/OneDrive/Prog/Share/EVcharge"
-ZIP_NAME="evcharge_dist.zip"
 
-# ---- BUILD PROJECT ----
-echo "🏗  Building project..."
-npm run build || { echo "❌ Build failed"; exit 1; }
+# Ensure destination directory exists
+if [ ! -d "$ONEDRIVE_PATH" ]; then
+    echo "Creating OneDrive share directory: $ONEDRIVE_PATH"
+    mkdir -p "$ONEDRIVE_PATH"
+fi
 
-# ---- PACKAGE dist/ ----
-echo "📦 Creating ZIP archive..."
-mkdir -p "$ONEDRIVE_PATH"
+ARCHIVE_NAME="evcharge_dist.tar.gz"
+ARCHIVE_PATH="$ONEDRIVE_PATH/$ARCHIVE_NAME"
 
-cd dist || { echo "❌ dist/ folder missing"; exit 1; }
-tar -czf "$ONEDRIVE_PATH/$ZIP_NAME" ./*
-cd ..
+# Remove old archive if exists
+if [ -f "$ARCHIVE_PATH" ]; then
+    echo "Removing existing archive: $ARCHIVE_PATH"
+    rm -f "$ARCHIVE_PATH"
+fi
 
-echo "✔ ZIP stored at: $ONEDRIVE_PATH/$ZIP_NAME"
-echo "➡️ Transfer this ZIP to your phone via OneDrive"
+# Create tar.gz from the dist folder in the current directory
+echo "Creating archive from ./dist..."
+tar -czf "$ARCHIVE_PATH" dist
 
+echo "Done!"
+echo "Archive created at:"
+echo "  $ARCHIVE_PATH"
+echo ""
+echo "Copy this file manually to the Android share folder:"
+echo "/storage/emulated/0/Prog/Share/EVcharge/"

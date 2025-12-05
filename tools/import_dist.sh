@@ -15,31 +15,30 @@ fi
 
 echo "✔ Environment OK: Android/Termux detected"
 
-# ---- PATH CONFIG ----
-ZIP_NAME="evcharge_dist.zip"
-SOURCE_ZIP="$HOME/storage/shared/OneDrive/Prog/Share/EVcharge/$ZIP_NAME"
-TARGET_DIR="$HOME/EVcharge/www"
+# Where the file is located on the phone
+SOURCE_DIR="/storage/emulated/0/Prog/Share/EVcharge"
+ARCHIVE_NAME="evcharge_dist.tar.gz"
+ARCHIVE_PATH="$SOURCE_DIR/$ARCHIVE_NAME"
 
-# ---- CHECK ZIP EXISTS ----
-if [ ! -f "$SOURCE_ZIP" ]; then
-    echo "❌ ZIP file not found at:"
-    echo "   $SOURCE_ZIP"
-    echo "📌 Check that OneDrive has synced."
+# Where the app lives (dist/ will be replaced here)
+APP_DIR="/storage/emulated/0/Prog/JavaScript/EVcharge"
+
+cd "$APP_DIR"
+
+# Ensure archive exists
+if [ ! -f "$ARCHIVE_PATH" ]; then
+    echo "ERROR: Archive not found at:"
+    echo "  $ARCHIVE_PATH"
     exit 1
 fi
 
-echo "📂 ZIP found: $SOURCE_ZIP"
+echo "Removing old dist/..."
+rm -rf dist
 
-# ---- PREPARE TARGET DIR ----
-mkdir -p "$TARGET_DIR"
+echo "Extracting new dist/ from archive..."
+tar -xzf "$ARCHIVE_PATH"
 
-echo "🧹 Cleaning old dist in: $TARGET_DIR"
-rm -rf "$TARGET_DIR"/*
+# dist/ will appear automatically from the archive
 
-# ---- EXTRACT ----
-echo "📦 Extracting ZIP..."
-cd "$TARGET_DIR" || exit 1
-tar -xzf "$SOURCE_ZIP"
-
-echo "✔ Deployment complete!"
-echo "✨ Files extracted to: $TARGET_DIR"
+echo "Done!"
+echo "dist/ has been updated."
