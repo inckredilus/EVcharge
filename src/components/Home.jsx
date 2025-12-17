@@ -36,7 +36,7 @@ export default function Home({ goStart, goComplete, goShow, last, refreshLogs })
 
   return (
     <div className="card">
-      <h2>EV Charge Logger</h2>
+      <h2>EV Charge Logger v1.1</h2>
 
       <div className="header">
         <button className="btn btn-start" onClick={goStart} disabled={!startEnabled}>START</button>

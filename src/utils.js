@@ -2,7 +2,12 @@
  utils.js
  Utility functions for EVcharge: localStorage, parsing, ISO build, validators.
 */
+
 export const LS_KEY = "evcharge_logs";
+
+/* =========================
+   LocalStorage helpers
+   ========================= */
 
 export function loadLogs() {
   try {
@@ -44,12 +49,22 @@ export function removeLastLog() {
   }
 }
 
+/* =========================
+   Parsing helpers
+   ========================= */
+
 export function parseMmDd(mmdd) {
   if (!mmdd) return null;
   const p = mmdd.trim().split("/");
   if (p.length !== 2) return null;
-  const mm = parseInt(p[0], 10), dd = parseInt(p[1], 10);
+
+  const mm = parseInt(p[0], 10);
+  const dd = parseInt(p[1], 10);
+
   if (Number.isNaN(mm) || Number.isNaN(dd)) return null;
+  if (mm < 1 || mm > 12) return null;
+  if (dd < 1 || dd > 31) return null;
+
   return { mm, dd };
 }
 
@@ -57,20 +72,32 @@ export function parseHhMm(hhmm) {
   if (!hhmm) return null;
   const p = hhmm.trim().split(":");
   if (p.length !== 2) return null;
-  const hh = parseInt(p[0], 10), mm = parseInt(p[1], 10);
+
+  const hh = parseInt(p[0], 10);
+  const mm = parseInt(p[1], 10);
+
   if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+  if (hh < 0 || hh > 23) return null;
+  if (mm < 0 || mm > 59) return null;
+
   return { hh, mm };
 }
+
+/* =========================
+   ISO helpers
+   ========================= */
 
 export function buildIsoLocal(mmdd, hhmm) {
   const d = parseMmDd(mmdd);
   const t = parseHhMm(hhmm);
   if (!d || !t) return null;
+
   const y = new Date().getFullYear();
   const mm = String(d.mm).padStart(2, "0");
   const dd = String(d.dd).padStart(2, "0");
   const hh = String(t.hh).padStart(2, "0");
   const min = String(t.mm).padStart(2, "0");
+
   return `${y}-${mm}-${dd}T${hh}:${min}`;
 }
 
@@ -88,21 +115,106 @@ export function isoToHhMm(iso) {
   return p[1].slice(0, 5);
 }
 
+/* =========================
+   State checks
+   ========================= */
+
 export function isPendingStart(log) {
   if (!log) return false;
-  const endFields = ["endDate", "endTime", "endPct", "endRange", "Consumption"];
+
+  const endFields = [
+    "endDate",
+    "endTime",
+    "endPct",
+    "endRange",
+    "Consumption"
+  ];
+
   for (const f of endFields) {
-    if (log[f] !== null && log[f] !== undefined && String(log[f]).trim() !== "") return false;
+    if (log[f] !== null && log[f] !== undefined && String(log[f]).trim() !== "") {
+      return false;
+    }
   }
   return true;
 }
 
 export function isCompleteLog(log) {
   if (!log) return false;
-  const startReq = ["startDate", "startTime", "startPct", "startRange", "Mileage"];
-  const endReq = ["endDate", "endTime", "endPct", "endRange", "Consumption"];
+
+  const startReq = [
+    "startDate",
+    "startTime",
+    "startPct",
+    "startRange",
+    "Mileage"
+  ];
+
+  const endReq = [
+    "endDate",
+    "endTime",
+    "endPct",
+    "endRange",
+    "Consumption"
+  ];
+
   for (const f of [...startReq, ...endReq]) {
-    if (log[f] === null || log[f] === undefined || String(log[f]).trim() === "") return false;
+    if (log[f] === null || log[f] === undefined || String(log[f]).trim() === "") {
+      return false;
+    }
   }
   return true;
+}
+
+/* =========================
+   Validation (Issue #2)
+   ========================= */
+
+/**
+ * Validate numeric value within range
+ */
+export function isNumberInRange(val, min, max) {
+  const n = Number(val);
+  return Number.isFinite(n) && n >= min && n <= max;
+}
+
+/**
+ * Validate percentage (0–100)
+ */
+export function isValidPct(val) {
+  return isNumberInRange(val, 0, 100);
+}
+
+/**
+ * Validate ISO date-time ordering
+ * end must be strictly after start
+ */
+export function isEndAfterStart(startIso, endIso) {
+  if (!startIso || !endIso) return false;
+  const s = new Date(startIso).getTime();
+  const e = new Date(endIso).getTime();
+  return Number.isFinite(s) && Number.isFinite(e) && e > s;
+}
+
+/**
+ * High-level log validation
+ * Returns { ok: boolean, error?: string }
+ */
+export function validateLog(log) {
+  if (!log) return { ok: false, error: "Missing log object" };
+
+  if (!isValidPct(log.startPct)) {
+    return { ok: false, error: "Invalid start percentage" };
+  }
+
+  if (log.endPct !== undefined && !isValidPct(log.endPct)) {
+    return { ok: false, error: "Invalid end percentage" };
+  }
+
+  if (log.startIso && log.endIso) {
+    if (!isEndAfterStart(log.startIso, log.endIso)) {
+      return { ok: false, error: "End time must be after start time" };
+    }
+  }
+
+  return { ok: true };
 }
