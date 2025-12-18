@@ -34,10 +34,10 @@ export default function App() {
         />
       )}
 
-      {(mode === "start" || mode === "edit") && (
+      {mode === "start" && (
         <StartForm
-          edit={mode === "edit"}
-          last={last}
+          isEdit={false}
+          last={null}
           onDone={() => {
             refresh();
             setMode("home");
@@ -46,6 +46,18 @@ export default function App() {
         />
       )}
 
+      {mode === "edit" && (
+        <StartForm
+          isEdit={true}
+          last={last}
+          onDone={() => {
+            refresh();
+            setMode("home");
+          }}
+          onCancel={() => setMode("home")}
+        />
+      )}
+      
       {mode === "complete" && (
         <CompleteForm
           pending={last}
