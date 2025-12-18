@@ -218,3 +218,43 @@ export function validateLog(log) {
 
   return { ok: true };
 }
+export function removeFirstTenLogs() {
+  const logs = loadLogs();
+  saveLogs(logs.slice(10));
+}
+
+/* ---------- Validation helpers ---------- */
+
+export function isPercent(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 && n <= 100;
+}
+
+export function parseDateInput(input) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
+
+  const m = input.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (!m) return null;
+
+  const year = new Date().getFullYear();
+  const mm = String(m[1]).padStart(2, "0");
+  const dd = String(m[2]).padStart(2, "0");
+
+  if (+mm < 1 || +mm > 12 || +dd < 1 || +dd > 31) return null;
+  return `${year}-${mm}-${dd}`;
+}
+
+export function parseTimeInput(input) {
+  const m = input.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const hh = +m[1];
+  const mm = +m[2];
+  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+  return `${String(hh).padStart(2, "0")}:${m[2]}`;
+}
+
+export function shortDate(iso) {
+  const [, m, d] = iso.split("-");
+  return `${+m}/${+d}`;
+}
+
