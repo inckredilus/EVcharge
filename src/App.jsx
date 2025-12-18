@@ -1,3 +1,4 @@
+/* --- src/App.jsx --- */
 import React, { useEffect, useState } from "react";
 import Home from "./components/Home.jsx";
 import StartForm from "./components/StartForm.jsx";
@@ -26,36 +27,39 @@ export default function App() {
           goStart={() => setMode("start")}
           goComplete={() => setMode("complete")}
           goShow={() => setMode("show")}
+          goEdit={() => setMode("edit")}
+          goPost={() => alert("POST not implemented yet")}
           last={last}
           refreshLogs={refresh}
         />
       )}
-      {mode === "start" && (
+
+      {(mode === "start" || mode === "edit") && (
         <StartForm
+          edit={mode === "edit"}
+          last={last}
           onDone={() => {
             refresh();
             setMode("home");
           }}
           onCancel={() => setMode("home")}
-          last={last}
         />
       )}
+
       {mode === "complete" && (
         <CompleteForm
+          pending={last}
           onDone={() => {
             refresh();
             setMode("home");
           }}
           onCancel={() => setMode("home")}
-          pending={last}
         />
       )}
+
       {mode === "show" && (
         <ShowView
-          onBack={() => {
-            // Always return to home when BACK pressed from SHOW (per spec)
-            setMode("home");
-          }}
+          onBack={() => setMode("home")}
           onDelete={() => {
             refresh();
             setMode("home");
