@@ -1,10 +1,14 @@
+/* --- src/components/StartForm.jsx --- */
 import React, { useEffect, useState } from "react";
-import { appendLog, replaceLastLog, buildIsoLocal, shortDate} from "../utils.js";
+import {
+  appendLog,
+  replaceLastLog,
+  parseDateInput,
+  parseTimeInput,
+  isValidPct
+} from "../utils.js";
 
 export default function StartForm({ onDone, onCancel, last, isEdit }) {
-
-//  const isEdit = Boolean(last);
-
   const [form, setForm] = useState({
     startDate: "",
     startTime: "",
@@ -18,17 +22,19 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
     Consumption: ""
   });
 
-  // Prefill on EDIT
+  /* =========================
+     Prefill on EDIT
+     ========================= */
   useEffect(() => {
     if (!isEdit || !last) return;
 
     setForm({
-      startDate: last.startDate ? shortDate(last.startDate) : "",
+      startDate: last.startDate ?? "",
       startTime: last.startTime ?? "",
       startPct: last.startPct ?? "",
       startRange: last.startRange ?? "",
       Mileage: last.Mileage ?? "",
-      endDate: last.endDate ? shortDate(last.endDate) : "",
+      endDate: last.endDate ?? "",
       endTime: last.endTime ?? "",
       endPct: last.endPct ?? "",
       endRange: last.endRange ?? "",
@@ -36,11 +42,14 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
     });
   }, [isEdit, last]);
 
-  // Auto-fill date/time for START
+  /* =========================
+     Auto-fill START datetime
+     ========================= */
   useEffect(() => {
     if (isEdit) return;
 
     const now = new Date();
+    const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, "0");
     const dd = String(now.getDate()).padStart(2, "0");
     const hh = String(now.getHours()).padStart(2, "0");
@@ -48,7 +57,7 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
 
     setForm((f) => ({
       ...f,
-      startDate: `${mm}/${dd}`,
+      startDate: `${yyyy}-${mm}-${dd}`,
       startTime: `${hh}:${min}`
     }));
   }, [isEdit]);
@@ -57,20 +66,43 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
+  /* =========================
+     Validate & Save
+     ========================= */
   function validateAndSave() {
-    if (!form.startDate || !form.startTime || form.startPct === "" || form.startRange === "") {
+    if (
+      !form.startDate ||
+      !form.startTime ||
+      form.startPct === "" ||
+      form.startRange === ""
+    ) {
       alert("Start fields 1–4 are required (Mileage optional).");
       return;
     }
 
+    const startDateIso = parseDateInput(form.startDate);
+    const startTimeNorm = parseTimeInput(form.startTime);
+
+    if (!startDateIso || !startTimeNorm) {
+      alert("Invalid start date or time.");
+      return;
+    }
+
+    if (!isValidPct(form.startPct)) {
+      alert("Start percentage must be a number between 0 and 100.");
+      return;
+    }    
+
     const entry = {
-      startDate: buildIsoLocal(form.startDate, form.startTime) || form.startDate,
-      startTime: form.startTime,
+      startDate: startDateIso,
+      startTime: startTimeNorm,
+      startIso: `${startDateIso}T${startTimeNorm}`,
       startPct: Number(form.startPct),
       startRange: Number(form.startRange),
       Mileage: form.Mileage === "" ? "" : Number(form.Mileage),
       endDate: "",
       endTime: "",
+      endIso: "",
       endPct: "",
       endRange: "",
       Consumption: "",
@@ -85,11 +117,25 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
       form.Consumption !== "";
 
     if (hasEnd) {
-      entry.endDate = buildIsoLocal(form.endDate, form.endTime) || form.endDate;
-      entry.endTime = form.endTime;
+      const endDateIso = parseDateInput(form.endDate);
+      const endTimeNorm = parseTimeInput(form.endTime);
+
+      if (!endDateIso || !endTimeNorm) {
+        alert("Invalid end date or time.");
+        return;
+      }
+
+      if (!isValidPct(form.endPct)) {
+        alert("End percentage must be a number between 0 and 100.");
+        return;
+      }
+
+      entry.endDate = endDateIso;
+      entry.endTime = endTimeNorm;
+      entry.endIso = `${endDateIso}T${endTimeNorm}`;
       entry.endPct = Number(form.endPct);
       entry.endRange = Number(form.endRange);
-      entry.Consumption = parseFloat(form.Consumption);
+      entry.Consumption = Number(form.Consumption);
     }
 
     if (isEdit) {
@@ -108,55 +154,92 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
       <h3>{isEdit ? "EDIT — Charging session" : "START — New charging session"}</h3>
 
       <label className="label-row">
-        Start date (mm/dd)
-        <input value={form.startDate} onChange={(e) => update("startDate", e.target.value)} />
+        Start date (YYYY-MM-DD or M/D)
+        <input
+          value={form.startDate}
+          onChange={(e) => update("startDate", e.target.value)}
+        />
       </label>
 
       <label className="label-row">
         Start time (hh:mm)
-        <input value={form.startTime} onChange={(e) => update("startTime", e.target.value)} />
+        <input
+          value={form.startTime}
+          onChange={(e) => update("startTime", e.target.value)}
+        />
       </label>
 
       <label className="label-row">
         Start %
-        <input type="number" value={form.startPct} onChange={(e) => update("startPct", e.target.value)} />
+        <input
+          type="number"
+          value={form.startPct}
+          onChange={(e) => update("startPct", e.target.value)}
+        />
       </label>
 
       <label className="label-row">
         Start range (km)
-        <input type="number" value={form.startRange} onChange={(e) => update("startRange", e.target.value)} />
+        <input
+          type="number"
+          value={form.startRange}
+          onChange={(e) => update("startRange", e.target.value)}
+        />
       </label>
 
       <label className="label-row">
         Mileage (km)
-        <input type="number" value={form.Mileage} onChange={(e) => update("Mileage", e.target.value)} />
+        <input
+          type="number"
+          value={form.Mileage}
+          onChange={(e) => update("Mileage", e.target.value)}
+        />
       </label>
 
       <hr />
 
       <label className="label-row">
-        End date (mm/dd)
-        <input value={form.endDate} onChange={(e) => update("endDate", e.target.value)} />
+        End date (YYYY-MM-DD or M/D)
+        <input
+          value={form.endDate}
+          onChange={(e) => update("endDate", e.target.value)}
+        />
       </label>
 
       <label className="label-row">
         End time (hh:mm)
-        <input value={form.endTime} onChange={(e) => update("endTime", e.target.value)} />
+        <input
+          value={form.endTime}
+          onChange={(e) => update("endTime", e.target.value)}
+        />
       </label>
 
       <label className="label-row">
         End %
-        <input type="number" value={form.endPct} onChange={(e) => update("endPct", e.target.value)} />
+        <input
+          type="number"
+          value={form.endPct}
+          onChange={(e) => update("endPct", e.target.value)}
+        />
       </label>
 
       <label className="label-row">
         End range (km)
-        <input type="number" value={form.endRange} onChange={(e) => update("endRange", e.target.value)} />
+        <input
+          type="number"
+          value={form.endRange}
+          onChange={(e) => update("endRange", e.target.value)}
+        />
       </label>
 
       <label className="label-row">
         Consumption (kWh)
-        <input type="number" step="0.01" value={form.Consumption} onChange={(e) => update("Consumption", e.target.value)} />
+        <input
+          type="number"
+          step="0.01"
+          value={form.Consumption}
+          onChange={(e) => update("Consumption", e.target.value)}
+        />
       </label>
 
       <div className="actions">

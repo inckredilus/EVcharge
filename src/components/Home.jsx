@@ -30,23 +30,23 @@ export default function Home({
 
   return (
     <div className="card">
-      <h2>EV Charge Logger v1.1.4</h2>
+      <h2>EV Charge Logger v1.1.5</h2>
 
       <div className="header">
         <button className="btn btn-start" onClick={goStart} disabled={!startEnabled}>
           START
         </button>
-
+{/* Leaving out COMPLETE button for now - use EDIT/FINISH instead
         <button className="btn btn-complete" onClick={goComplete} disabled={!completeEnabled}>
           COMPLETE
         </button>
-
-        <button className="btn btn-show" onClick={goShow} disabled={!showEnabled}>
-          SHOW
+*/}
+         <button className="btn btn-edit" onClick={goEdit} disabled={!editEnabled}>
+          EDIT / FINISH
         </button>
 
-        <button className="btn btn-edit" onClick={goEdit} disabled={!editEnabled}>
-          EDIT
+       <button className="btn btn-show" onClick={goShow} disabled={!showEnabled}>
+          SHOW
         </button>
 
         <button className="btn btn-post" onClick={goPost} disabled>

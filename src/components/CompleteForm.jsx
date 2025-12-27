@@ -1,5 +1,6 @@
+/* --- src/components/CompleteForm.jsx --- */
 import React, { useEffect, useState } from "react";
-import { replaceLastLog, buildIsoLocal, isoToMmDd, isoToHhMm } from "../utils.js";
+import { replaceLastLog, buildIsoLocal, isoToHhMm } from "../utils.js";
 
 export default function CompleteForm({ onDone, onCancel, pending }) {
   const [form, setForm] = useState({
@@ -15,18 +16,25 @@ export default function CompleteForm({ onDone, onCancel, pending }) {
     Consumption: ""
   });
 
-  // Prefill from pending record
+  // Prefill form from pending record
   useEffect(() => {
     if (!pending) return;
 
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    const hh = String(now.getHours()).padStart(2, "0");
+    const min = String(now.getMinutes()).padStart(2, "0");
+
     const startDate =
       pending.startDate && String(pending.startDate).includes("T")
-        ? isoToMmDd(pending.startDate)
+        ? pending.startDate.slice(0, 10) // extract YYYY-MM-DD from ISO
         : pending.startDate || "";
 
     const startTime =
       pending.startDate && String(pending.startDate).includes("T")
-        ? isoToHhMm(pending.startDate)
+        ? isoToHhMm(pending.startDate) // extract HH:MM from ISO
         : pending.startTime || "";
 
     setForm({
@@ -35,25 +43,12 @@ export default function CompleteForm({ onDone, onCancel, pending }) {
       startPct: pending.startPct ?? "",
       startRange: pending.startRange ?? "",
       Mileage: pending.Mileage ?? "",
-      endDate: "",
-      endTime: "",
+      endDate: `${yyyy}-${mm}-${dd}`, // default end date = today (ISO)
+      endTime: `${hh}:${min}`,        // default end time = now
       endPct: "",
       endRange: "",
       Consumption: ""
     });
-
-    // Autofill end date/time
-    const now = new Date();
-    const mm = String(now.getMonth() + 1).padStart(2, "0");
-    const dd = String(now.getDate()).padStart(2, "0");
-    const hh = String(now.getHours()).padStart(2, "0");
-    const min = String(now.getMinutes()).padStart(2, "0");
-
-    setForm((f) => ({
-      ...f,
-      endDate: `${mm}/${dd}`,
-      endTime: `${hh}:${min}`
-    }));
   }, [pending]);
 
   function update(field, value) {
@@ -61,21 +56,55 @@ export default function CompleteForm({ onDone, onCancel, pending }) {
   }
 
   function submitComplete() {
-    // Require all fields
-    for (const [k, v] of Object.entries(form)) {
-      if (v === "" || v === null || v === undefined) {
-        alert("All fields are required to complete a session.");
-        return;
-      }
+    // Validate required start fields
+    if (
+      !form.startDate ||
+      !form.startTime ||
+      form.startPct === "" ||
+      form.startRange === "" ||
+      form.Mileage === ""
+    ) {
+      alert("All start fields (including Mileage) are required.");
+      return;
+    }
+
+    // Validate required end fields
+    if (
+      !form.endDate ||
+      !form.endTime ||
+      form.endPct === "" ||
+      form.endRange === "" ||
+      form.Consumption === ""
+    ) {
+      alert("All end fields are required to complete.");
+      return;
+    }
+
+    // Build ISO safely: only build if not already ISO
+    const startIso = String(form.startDate).includes("T")
+      ? form.startDate
+      : buildIsoLocal(form.startDate, form.startTime);
+
+    const endIso = String(form.endDate).includes("T")
+      ? form.endDate
+      : buildIsoLocal(form.endDate, form.endTime);
+// debug 2 rows:
+      console.log("startIso", startIso);
+      console.log("endIso", endIso);
+
+
+    if (!startIso || !endIso) {
+      alert("Invalid date or time format.");
+      return;
     }
 
     const completed = {
-      startDate: buildIsoLocal(form.startDate, form.startTime),
+      startDate: startIso, // always ISO here
       startTime: form.startTime,
       startPct: Number(form.startPct),
       startRange: Number(form.startRange),
       Mileage: Number(form.Mileage),
-      endDate: buildIsoLocal(form.endDate, form.endTime),
+      endDate: endIso,     // always ISO here
       endTime: form.endTime,
       endPct: Number(form.endPct),
       endRange: Number(form.endRange),
@@ -83,7 +112,7 @@ export default function CompleteForm({ onDone, onCancel, pending }) {
       savedAt: new Date().toISOString()
     };
 
-    replaceLastLog(completed);
+    replaceLastLog(completed); // overwrite pending with completed record
     alert("Charging session completed.");
     onDone();
   }
@@ -93,7 +122,7 @@ export default function CompleteForm({ onDone, onCancel, pending }) {
       <h3>COMPLETE — Finish charging session</h3>
 
       <label className="label-row">
-        Start date (MM/DD)
+        Start date (YYYY-MM-DD or M/D)
         <input value={form.startDate} onChange={(e) => update("startDate", e.target.value)} />
       </label>
 
@@ -120,7 +149,7 @@ export default function CompleteForm({ onDone, onCancel, pending }) {
       <hr />
 
       <label className="label-row">
-        End date (MM/DD)
+        End date (YYYY-MM-DD or M/D)
         <input value={form.endDate} onChange={(e) => update("endDate", e.target.value)} />
       </label>
 

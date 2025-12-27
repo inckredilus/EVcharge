@@ -231,26 +231,42 @@ export function isPercent(v) {
 }
 
 export function parseDateInput(input) {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
+  if (!input) return null;
 
-  const m = input.match(/^(\d{1,2})\/(\d{1,2})$/);
+  const v = String(input).trim();
+
+  // ISO already → keep
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    return v;
+  }
+
+  // M/D, MM/D, M/DD, MM/DD
+  const m = v.match(/^(\d{1,2})\/(\d{1,2})$/);
   if (!m) return null;
 
   const year = new Date().getFullYear();
-  const mm = String(m[1]).padStart(2, "0");
-  const dd = String(m[2]).padStart(2, "0");
+  const mm = Number(m[1]);
+  const dd = Number(m[2]);
 
-  if (+mm < 1 || +mm > 12 || +dd < 1 || +dd > 31) return null;
-  return `${year}-${mm}-${dd}`;
+  if (!Number.isFinite(mm) || !Number.isFinite(dd)) return null;
+  if (mm < 1 || mm > 12) return null;
+  if (dd < 1 || dd > 31) return null;
+
+  return `${year}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
 }
 
 export function parseTimeInput(input) {
-  const m = input.match(/^(\d{1,2}):(\d{2})$/);
+  if (!input) return null;
+
+  const v = String(input).trim();
+  const m = v.match(/^(\d{1,2}):(\d{2})$/);
+
   if (!m) return null;
-  const hh = +m[1];
-  const mm = +m[2];
-  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
-  return `${String(hh).padStart(2, "0")}:${m[2]}`;
+   const hh = +m[1];
+   const mm = +m[2];
+   if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
 export function shortDate(iso) {
