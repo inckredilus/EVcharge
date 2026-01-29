@@ -30,7 +30,7 @@ export default function Home({
 
   return (
     <div className="card">
-      <h2>EV Charge Logger v1.1.5</h2>
+      <h2>EV Charge Logger v1.1.6</h2>
 
       <div className="header">
         <button className="btn btn-start" onClick={goStart} disabled={!startEnabled}>
@@ -83,5 +83,11 @@ function formatSummary(e) {
     e.Consumption === "" || e.Consumption === undefined || e.Consumption === null
       ? ""
       : `${e.Consumption} kWh`;
-  return `${sDate} ${mileage} ${sTime}-${eTime} ${pct}% ${range} ${cons}`;
+
+      const note =
+        e.note && e.note.trim() !== ""
+          ? ` — ${e.note}`
+          : "";
+
+  return `${sDate} ${mileage} ${sTime}-${eTime} ${pct}% ${range} ${cons}${note}`;
 }

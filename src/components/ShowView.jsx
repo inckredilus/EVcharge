@@ -59,7 +59,10 @@ function formatSummary(e) {
   const pct = `${e.startPct ?? ""}-${e.endPct ?? ""}%`;
   const range = `${e.startRange ?? ""}-${e.endRange ?? ""}`;
   const cons = (e.Consumption === "" || e.Consumption === null || e.Consumption === undefined) ? "" : `${e.Consumption} kWh`;
-  return `${sDate} ${mileage} ${sTime}-${eTime} ${pct} ${range} ${cons}`;
+  const note =
+  e.note && e.note.trim() !== "" ? ` — ${e.note}` : "";
+
+  return `${sDate} ${mileage} ${sTime}-${eTime} ${pct} ${range} ${cons}${note}`;
 }
 
 function formatDetailed(e) {
@@ -68,7 +71,7 @@ function formatDetailed(e) {
   const sTime = e.startTime || "";
   const lines = [
     `Start: ${sDate} ${sTime}`,
-    `Start SOC: ${e.startPct ?? ""} %`,
+    `Start Charge: ${e.startPct ?? ""} %`,
     `Start Range: ${e.startRange ?? ""} km`,
     `Mileage: ${(e.Mileage === "" || e.Mileage === null || e.Mileage === undefined) ? "..." : e.Mileage + " km"}`,
     ""
@@ -77,11 +80,17 @@ function formatDetailed(e) {
     const edate = (e.endDate && e.endDate.indexOf("T") !== -1) ? e.endDate.split("T")[0] : e.endDate;
     const etime = e.endTime || "";
     lines.push(`End: ${edate} ${etime}`);
-    if (e.endPct !== "" && e.endPct !== null && e.endPct !== undefined) lines.push(`End SOC: ${e.endPct} %`);
+    if (e.endPct !== "" && e.endPct !== null && e.endPct !== undefined) lines.push(`End Charge: ${e.endPct} %`);
     if (e.endRange !== "" && e.endRange !== null && e.endRange !== undefined) lines.push(`End Range: ${e.endRange} km`);
     if (e.Consumption !== "" && e.Consumption !== null && e.Consumption !== undefined) lines.push(`Consumption: ${e.Consumption} kWh`);
   } else {
     lines.push("End: (not entered)");
   }
+  
+  if (e.note && e.note.trim() !== "") {
+    lines.push("");
+    lines.push(`Note: ${e.note}`);
+  }
+
   return lines.join("\n");
 }

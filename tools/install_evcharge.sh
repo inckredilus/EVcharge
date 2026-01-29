@@ -25,6 +25,17 @@
 #
 # -------------------------------------------------------
 
+# Exit if not in a git branch (safety check)
+
+branch=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
+  echo "ERROR: Do NOT run this script on the main branch."
+  echo "Switch to a feature branch (e.g. script-test) and run again."
+  exit 1
+fi
+
+# Main script starts here
 set -euo pipefail
 
 # Timestamp for backup folder

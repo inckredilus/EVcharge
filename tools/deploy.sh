@@ -43,3 +43,12 @@ echo "  $ARCHIVE_PATH"
 echo ""
 echo "Copy this file manually to the Android share folder:"
 echo "/storage/emulated/0/Prog/Share/EVcharge/"
+echo ""
+echo "Then run the following commands on Android (Termux):"
+echo ""
+echo '$ busybox httpd -f -p 8081 -h /storage/emulated/0/Prog/JavaScript/EVcharge/dist/'
+echo ""
+echo "Open in browser:"
+echo ""
+echo '$ am start -a android.intent.action.VIEW -d "http://127.0.0.1:8081"'
+echo ""

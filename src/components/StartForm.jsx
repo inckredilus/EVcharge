@@ -19,7 +19,8 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
     endTime: "",
     endPct: "",
     endRange: "",
-    Consumption: ""
+    Consumption: "",
+    note: ""
   });
 
   /* =========================
@@ -38,7 +39,8 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
       endTime: last.endTime ?? "",
       endPct: last.endPct ?? "",
       endRange: last.endRange ?? "",
-      Consumption: last.Consumption ?? ""
+      Consumption: last.Consumption ?? "",
+      note: last.note ?? ""
     });
   }, [isEdit, last]);
 
@@ -106,6 +108,7 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
       endPct: "",
       endRange: "",
       Consumption: "",
+      note: form.note.trim(),
       savedAt: new Date().toISOString()
     };
 
@@ -239,6 +242,15 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
           step="0.01"
           value={form.Consumption}
           onChange={(e) => update("Consumption", e.target.value)}
+        />
+      </label>
+      
+      <label className="label-row">
+        Note (optional)
+        <input
+          type="text"
+          value={form.note}
+          onChange={(e) => update("note", e.target.value)}
         />
       </label>
 
