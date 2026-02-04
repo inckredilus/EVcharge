@@ -50,6 +50,29 @@ export function removeLastLog() {
 }
 
 /* =========================
+   POST helpers
+   ========================= */
+
+   export function getUnpostedCompleteLogs() {
+  const logs = loadLogs();
+  return logs.filter(
+    (l) =>
+      isCompleteLog(l) &&
+      (!l.postedAt || String(l.postedAt).trim() === "")
+  );
+}
+
+export function markLogsAsPosted(indices, timestamp) {
+  const logs = loadLogs();
+  indices.forEach((i) => {
+    if (logs[i]) {
+      logs[i].postedAt = timestamp;
+    }
+  });
+  saveLogs(logs);
+}
+
+/* =========================
    Parsing helpers
    ========================= */
 

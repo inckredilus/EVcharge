@@ -8,6 +8,7 @@ node_modules/
 # Build output
 dist/
 build/
+cgi/
 
 # Local env files
 .env
@@ -18,12 +19,14 @@ build/
 *.bak
 backup_*/
 *_backup*/
+*.bup
 
 # Temporary files created during updates/tests
 temp/
 tmp/
 .cache/
 vite.config.ts.timestamp*
+*.tmp
 
 # Editor-specific files
 .vscode/

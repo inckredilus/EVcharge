@@ -1,3 +1,4 @@
+/* --- src/Home.jsx --- */
 import React from "react";
 import { isPendingStart, isCompleteLog, shortDate } from "../utils.js";
 
@@ -7,7 +8,8 @@ export default function Home({
   goShow,
   goEdit,
   goPost,
-  last
+  last,
+  lastPostedAt  // timestamp of last successful POST
 }) {
   const lastLog = last;
   const hasAny = !!lastLog;
@@ -18,6 +20,9 @@ export default function Home({
   const completeEnabled = pending;
   const showEnabled = hasAny;
   const editEnabled = pending || complete;
+
+  // POST button enabled only if last log exists and is complete
+  const postEnabled = hasAny && complete;
 
   let infoText = "";
   if (!hasAny) {
@@ -30,26 +35,22 @@ export default function Home({
 
   return (
     <div className="card">
-      <h2>EV Charge Logger v1.1.6</h2>
+      <h2>EV Charge Logger v1.2.1</h2>
 
       <div className="header">
         <button className="btn btn-start" onClick={goStart} disabled={!startEnabled}>
           START
         </button>
-{/* Leaving out COMPLETE button for now - use EDIT/FINISH instead
-        <button className="btn btn-complete" onClick={goComplete} disabled={!completeEnabled}>
-          COMPLETE
-        </button>
-*/}
-         <button className="btn btn-edit" onClick={goEdit} disabled={!editEnabled}>
+
+        <button className="btn btn-edit" onClick={goEdit} disabled={!editEnabled}>
           EDIT / FINISH
         </button>
 
-       <button className="btn btn-show" onClick={goShow} disabled={!showEnabled}>
+        <button className="btn btn-show" onClick={goShow} disabled={!showEnabled}>
           SHOW
         </button>
 
-        <button className="btn btn-post" onClick={goPost} disabled>
+        <button className="btn btn-post" onClick={goPost} disabled={!postEnabled}>
           POST
         </button>
       </div>
@@ -63,6 +64,12 @@ export default function Home({
         <div className="summary" style={{ marginTop: 8 }}>
           {lastLog ? formatSummary(lastLog) : "No records yet."}
         </div>
+
+        {lastPostedAt && (
+          <div className="small" style={{ marginTop: 8, fontStyle: "italic" }}>
+            Last records posted: {lastPostedAt}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -84,10 +91,10 @@ function formatSummary(e) {
       ? ""
       : `${e.Consumption} kWh`;
 
-      const note =
-        e.note && e.note.trim() !== ""
-          ? ` — ${e.note}`
-          : "";
+  const note =
+    e.note && e.note.trim() !== ""
+      ? ` — ${e.note}`
+      : "";
 
   return `${sDate} ${mileage} ${sTime}-${eTime} ${pct}% ${range} ${cons}${note}`;
 }
