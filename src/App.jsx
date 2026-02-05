@@ -4,7 +4,7 @@ import Home from "./components/Home.jsx";
 import StartForm from "./components/StartForm.jsx";
 import CompleteForm from "./components/CompleteForm.jsx";
 import ShowView from "./components/ShowView.jsx";
-import { getLastLog, loadLogs, appendLog } from "./utils.js";
+import { getLastLog, loadLogs } from "./utils.js";
 
 const DEBUG = true; // toggle for PC testing without actual CGI
 
@@ -12,7 +12,7 @@ export default function App() {
   const [mode, setMode] = useState("home");
   const [last, setLast] = useState(null);
   const [version, setVersion] = useState(0);
-  const [lastPostedAt, setLastPostedAt] = useState(null);
+  const [lastPostedAt, setLastPostedAt] = useState(null); // watermark (startIso)
 
   useEffect(() => {
     setLast(getLastLog());
@@ -30,17 +30,11 @@ export default function App() {
       return;
     }
 
-    // Determine unposted logs (watermark)
-    let startIndex = 0;
-    if (lastPostedAt) {
-      startIndex = logs.findIndex(
-        (log) => log.postedAt && log.postedAt === lastPostedAt
-      );
-      if (startIndex >= 0) startIndex += 1; // start after last posted
-      else startIndex = 0;
-    }
+    // Filter logs based on watermark
+    const toPost = lastPostedAt
+      ? logs.filter((log) => log.startIso && log.startIso > lastPostedAt)
+      : logs;
 
-    const toPost = logs.slice(startIndex);
     if (!toPost.length) {
       alert("All records already posted");
       return;
@@ -49,19 +43,22 @@ export default function App() {
     const payload = JSON.stringify(toPost);
 
     if (DEBUG) {
-      console.log("DEBUG: POST payload", payload);
-      const fakeTimestamp = new Date().toISOString();
-      setLastPostedAt(fakeTimestamp);
-      alert(`DEBUG: Simulated POST success at ${fakeTimestamp}`);
+      console.log("DEBUG: POST payload", toPost);
+      const newWatermark = toPost[toPost.length - 1].startIso;
+      setLastPostedAt(newWatermark);
+      alert(`DEBUG: Simulated POST success (${toPost.length} records)`);
       return;
     }
 
     try {
-      const response = await fetch("http://192.168.1.65:8090/cgi-bin/write_csv.cgi", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: payload,
-      });
+      const response = await fetch(
+        "http://192.168.1.65:8090/cgi-bin/write_csv.cgi",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payload,
+        }
+      );
 
       const text = await response.text();
       console.log("POST response:", text);
@@ -71,9 +68,9 @@ export default function App() {
         return;
       }
 
-      const now = new Date().toISOString();
-      setLastPostedAt(now);
-      alert(`Records posted successfully at ${now}`);
+      const newWatermark = toPost[toPost.length - 1].startIso;
+      setLastPostedAt(newWatermark);
+      alert(`Records posted successfully (${toPost.length})`);
     } catch (err) {
       console.error("POST error:", err);
       alert(`POST error: ${err}`);
