@@ -50,27 +50,50 @@ export function removeLastLog() {
 }
 
 /* =========================
-   POST helpers
+   CSV setup
    ========================= */
 
-   export function getUnpostedCompleteLogs() {
-  const logs = loadLogs();
-  return logs.filter(
-    (l) =>
-      isCompleteLog(l) &&
-      (!l.postedAt || String(l.postedAt).trim() === "")
-  );
+// utils.js
+export function logsToCsv(logs) {
+  const delimiter = ";";
+
+  const header = [
+    "Mileage",
+    "startDate",
+    "startTime",
+    "endDate",
+    "endTime",
+    "startPct",
+    "endPct",
+    "startRange",
+    "endRange",
+    "Consumption",
+    "note",
+  ].join(delimiter);
+
+  const rows = logs.map((log) => {
+    const values = [
+      log.Mileage,
+      log.startDate,
+      log.startTime,
+      log.endDate,
+      log.endTime,
+      log.startPct,
+      log.endPct,
+      log.startRange,
+      log.endRange,
+      log.Consumption,
+      log.note,
+    ];
+
+    return values
+      .map((v) => `"${v ?? ""}"`)
+      .join(delimiter);
+  });
+
+  return [header, ...rows].join("\n");
 }
 
-export function markLogsAsPosted(indices, timestamp) {
-  const logs = loadLogs();
-  indices.forEach((i) => {
-    if (logs[i]) {
-      logs[i].postedAt = timestamp;
-    }
-  });
-  saveLogs(logs);
-}
 
 /* =========================
    Parsing helpers

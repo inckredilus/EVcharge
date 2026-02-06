@@ -4,15 +4,24 @@ import Home from "./components/Home.jsx";
 import StartForm from "./components/StartForm.jsx";
 import CompleteForm from "./components/CompleteForm.jsx";
 import ShowView from "./components/ShowView.jsx";
-import { getLastLog, loadLogs } from "./utils.js";
+import { getLastLog, loadLogs, logsToCsv } from "./utils.js";
 
 const DEBUG = true; // toggle for PC testing without actual CGI
+const WATERMARK_KEY = "evcharge.lastPostedAt";
 
 export default function App() {
   const [mode, setMode] = useState("home");
   const [last, setLast] = useState(null);
   const [version, setVersion] = useState(0);
-  const [lastPostedAt, setLastPostedAt] = useState(null); // watermark (startIso)
+  const [lastPostedAt, setLastPostedAt] = useState(() =>
+    localStorage.getItem(WATERMARK_KEY)
+  );
+
+  useEffect(() => {
+    if (lastPostedAt) {
+      localStorage.setItem(WATERMARK_KEY, lastPostedAt);
+    }
+  }, [lastPostedAt]);
 
   useEffect(() => {
     setLast(getLastLog());
@@ -24,10 +33,19 @@ export default function App() {
   }
 
   async function goPostHandler() {
+ 
     const logs = loadLogs();
     if (!logs.length) {
       alert("No records to post");
       return;
+    }
+
+    // DEBUG: Ignore watermark and post all logs
+    if (DEBUG && window.confirm("DEBUG: Remove watermark?")) {
+      localStorage.removeItem(WATERMARK_KEY);
+      setLastPostedAt(null);
+      alert("DEBUG: Watermark cleared");
+  //    return;
     }
 
     // Filter logs based on watermark
@@ -43,9 +61,12 @@ export default function App() {
     const payload = JSON.stringify(toPost);
 
     if (DEBUG) {
-      console.log("DEBUG: POST payload", toPost);
+      const csv = logsToCsv(toPost);
+      console.log("DEBUG: CSV payload\n" + csv);
+
       const newWatermark = toPost[toPost.length - 1].startIso;
       setLastPostedAt(newWatermark);
+
       alert(`DEBUG: Simulated POST success (${toPost.length} records)`);
       return;
     }
