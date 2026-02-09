@@ -53,7 +53,44 @@ export function removeLastLog() {
    CSV setup
    ========================= */
 
-// utils.js
+   function normalize(v) {
+  if (v === null || v === undefined) return "";
+
+  // Already a number → keep
+  if (typeof v === "number") return v;
+
+  if (typeof v === "string") {
+    const s = v.trim();
+
+    // Empty string
+    if (s === "") return "";
+
+    // Pure number (integer or decimal)
+    if (/^-?\d+(\.\d+)?$/.test(s)) {
+      return Number(s);
+    }
+  }
+
+  // Everything else stays as-is
+  return v;
+}
+
+  function csvEscape(value, delimiter = ";") {
+    if (value === null || value === undefined) return "";
+
+    const s = String(value);
+
+    const mustQuote =
+      s.includes(delimiter) ||
+      s.includes('"') ||
+      s.includes("\n") ||
+      s.includes("\r");
+
+    if (!mustQuote) return s;
+
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+
 export function logsToCsv(logs) {
   const delimiter = ";";
 
@@ -86,8 +123,9 @@ export function logsToCsv(logs) {
       log.note,
     ];
 
+//   return values.map(csvEscape).join(delimiter);
     return values
-      .map((v) => `"${v ?? ""}"`)
+      .map((v) => csvEscape(normalize(v), delimiter))
       .join(delimiter);
   });
 
