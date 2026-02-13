@@ -6,7 +6,7 @@ import CompleteForm from "./components/CompleteForm.jsx";
 import ShowView from "./components/ShowView.jsx";
 import { getLastLog, loadLogs, logsToCsv } from "./utils.js";
 
-const DEBUG = true; // toggle for PC testing without actual CGI
+const DEBUG = false; // toggle for PC testing without actual CGI
 const WATERMARK_KEY = "evcharge.lastPostedAt";
 
 export default function App() {
@@ -58,11 +58,12 @@ export default function App() {
       return;
     }
 
-    const payload = JSON.stringify(toPost);
+//    const payload = JSON.stringify(toPost);
+    const payload = logsToCsv(toPost, DEBUG);
 
     if (DEBUG) {
-      const csv = logsToCsv(toPost);
-      console.log("DEBUG: CSV payload\n" + csv);
+//      const csv = logsToCsv(toPost);
+      console.log("DEBUG: CSV payload\n" + payload);
 
       const newWatermark = toPost[toPost.length - 1].startIso;
       setLastPostedAt(newWatermark);
@@ -73,10 +74,11 @@ export default function App() {
 
     try {
       const response = await fetch(
-        "http://192.168.1.65:8090/cgi-bin/write_csv.cgi",
+//        "http://192.168.1.65:8090/cgi-bin/write_csv.cgi",
+        "http://127.0.0.1:8090/cgi-bin/write_csv.cgi",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "text/plain" },
           body: payload,
         }
       );
@@ -93,8 +95,16 @@ export default function App() {
       setLastPostedAt(newWatermark);
       alert(`Records posted successfully (${toPost.length})`);
     } catch (err) {
-      console.error("POST error:", err);
-      alert(`POST error: ${err}`);
+//      console.error("POST error:", err);
+//      alert(`POST error: ${err}`);
+        console.error("POST error:", err);
+
+      let msg = "POST failed\n";
+      msg += `name: ${err.name}\n`;
+      msg += `message: ${err.message}\n`;
+      msg += `stack: ${err.stack ?? "(no stack)"}`;
+
+      alert(msg); 
     }
   }
 

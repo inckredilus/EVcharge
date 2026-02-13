@@ -53,7 +53,7 @@ export function removeLastLog() {
    CSV setup
    ========================= */
 
-   function normalize(v) {
+function normalize(v) {
   if (v === null || v === undefined) return "";
 
   // Already a number → keep
@@ -91,7 +91,7 @@ export function removeLastLog() {
     return `"${s.replace(/"/g, '""')}"`;
   }
 
-export function logsToCsv(logs) {
+export function logsToCsv(logs, includeHeader = false) {
   const delimiter = ";";
 
   const header = [
@@ -123,13 +123,14 @@ export function logsToCsv(logs) {
       log.note,
     ];
 
-//   return values.map(csvEscape).join(delimiter);
     return values
       .map((v) => csvEscape(normalize(v), delimiter))
       .join(delimiter);
   });
 
-  return [header, ...rows].join("\n");
+  return includeHeader
+    ? [header, ...rows].join("\n")
+    : rows.join("\n");
 }
 
 
