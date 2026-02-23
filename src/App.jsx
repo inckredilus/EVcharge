@@ -74,8 +74,7 @@ export default function App() {
 
     try {
       const response = await fetch(
-//        "http://192.168.1.65:8090/cgi-bin/write_csv.cgi",
-        "http://127.0.0.1:8090/cgi-bin/write_csv.cgi",
+        "/cgi-bin/write_csv.cgi",
         {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
