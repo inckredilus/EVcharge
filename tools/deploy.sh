@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# ---------------------------------------------------------
+# EVcharge - Windows Release Deployment Script
+# Creates release tarball for Android (Termux)
+# ---------------------------------------------------------
+
 # ---- ENVIRONMENT CHECK ----
 is_windows() {
     case "$(uname -s)" in
@@ -15,40 +20,42 @@ fi
 
 echo "✔ Environment OK: Windows detected"
 
-# Path inside Windows (Git Bash / VS Code terminal)
+# ---- PATH CONFIGURATION ----
 ONEDRIVE_PATH="/c/Users/Admin/OneDrive/Prog/Share/EVcharge"
-
-# Ensure destination directory exists
-if [ ! -d "$ONEDRIVE_PATH" ]; then
-    echo "Creating OneDrive share directory: $ONEDRIVE_PATH"
-    mkdir -p "$ONEDRIVE_PATH"
-fi
-
-ARCHIVE_NAME="evcharge_dist.tar.gz"
+ARCHIVE_NAME="evcharge_release.tar.gz"
 ARCHIVE_PATH="$ONEDRIVE_PATH/$ARCHIVE_NAME"
 
-# Remove old archive if exists
-if [ -f "$ARCHIVE_PATH" ]; then
-    echo "Removing existing archive: $ARCHIVE_PATH"
-    rm -f "$ARCHIVE_PATH"
-fi
+# ---- BUILD REACT APP ----
+echo "Building React app..."
+npm run build || exit 1
 
-# Create tar.gz from the dist folder in the current directory
-echo "Creating archive from ./dist..."
-tar -czf "$ARCHIVE_PATH" dist
+# ---- PREPARE TEMP RELEASE FOLDER ----
+echo "Preparing release structure..."
+rm -rf release
+mkdir -p release/www
+mkdir -p release/cgi-bin
 
-echo "Done!"
-echo "Archive created at:"
+# Copy React build
+cp -r dist/* release/www/
+
+# Copy CGI and config
+cp cgi/write_csv.cgi release/cgi-bin/
+cp lighttpd/lighttpd.conf release/
+
+# ---- CREATE ARCHIVE ----
+echo "Creating release archive..."
+rm -f "$ARCHIVE_PATH"
+tar -czf "$ARCHIVE_PATH" release
+
+# Cleanup temp folder
+rm -rf release
+
+echo ""
+echo "✔ Release package created:"
 echo "  $ARCHIVE_PATH"
 echo ""
-echo "Copy this file manually to the Android share folder:"
-echo "/storage/emulated/0/Prog/Share/EVcharge/"
-echo ""
-echo "Then run the following commands on Android (Termux):"
-echo ""
-echo '$ busybox httpd -f -p 8081 -h /storage/emulated/0/Prog/JavaScript/EVcharge/dist/'
-echo ""
-echo "Open in browser:"
-echo ""
-echo '$ am start -a android.intent.action.VIEW -d "http://127.0.0.1:8081"'
+echo "Next steps on Android:"
+echo "1) Copy archive to:"
+echo "   /storage/emulated/0/Prog/Share/EVcharge/"
+echo "2) Run your import script in Termux"
 echo ""
