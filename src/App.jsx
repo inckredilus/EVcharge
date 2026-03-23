@@ -6,7 +6,7 @@ import CompleteForm from "./components/CompleteForm.jsx";
 import ShowView from "./components/ShowView.jsx";
 import { getLastLog, loadLogs, logsToCsv } from "./utils.js";
 
-const DEBUG = false; // toggle for PC testing without actual CGI
+const DEBUG = false; // toggle for PC testing without actual CGI, use false for production (phone)
 const WATERMARK_KEY = "evcharge.lastPostedAt";
 
 export default function App() {
@@ -20,7 +20,14 @@ export default function App() {
   useEffect(() => {
     if (lastPostedAt) {
       localStorage.setItem(WATERMARK_KEY, lastPostedAt);
-    }
+    } else {
+    localStorage.removeItem(WATERMARK_KEY); 
+  }
+  }, [lastPostedAt]);
+
+  // Sanity check in console to verify watermark is loaded correctly
+  useEffect(() => {
+    console.log("lastPostedAt:", lastPostedAt);
   }, [lastPostedAt]);
 
   useEffect(() => {
@@ -31,6 +38,17 @@ export default function App() {
     setVersion((v) => v + 1);
     setLast(getLastLog());
   }
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setMode("home");
+    };
+
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   async function goPostHandler() {
  
@@ -164,6 +182,7 @@ export default function App() {
             refresh();
             setMode("home");
           }}
+          setLastPostedAt={setLastPostedAt} // pass setter down
         />
       )}
     </div>

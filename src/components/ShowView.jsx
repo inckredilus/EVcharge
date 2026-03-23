@@ -1,7 +1,7 @@
 import React from "react";
 import { loadLogs, removeLastLog } from "../utils.js";
 
-export default function ShowView({ onBack, onDelete }) {
+export default function ShowView({ onBack, onDelete, setLastPostedAt }) {
   const logs = loadLogs();
   const last = logs.length ? logs[logs.length - 1] : null;
 
@@ -16,38 +16,47 @@ export default function ShowView({ onBack, onDelete }) {
     if (onDelete) onDelete();
   }
 
-  return (
-    <div className="card">
-      <h3>SHOW — Pending and History</h3>
+  function handleResetPostState() {
+    setLastPostedAt(null);
+    alert("POST state reset.");
+  }
 
-      <div className="small">Pending (if any) is shown first. History follows (newest first).</div>
+return (
+  <div className="card">
+    <h3>SHOW — Pending and History</h3>
 
-      <div style={{ marginTop: 12 }}>
-        <strong>Pending / Latest</strong>
-        <div className="summary" style={{ marginTop: 8 }}>
-          {last ? formatDetailed(last) : "No records."}
-        </div>
-      </div>
+    <div className="small">
+      Pending (if any) is shown first. History follows (newest first).
+    </div>
 
-      <div style={{ marginTop: 12 }}>
-        <strong>History</strong>
-        <div className="list" style={{ marginTop: 8 }}>
-          {logs.length === 0 && <div className="list-item">No history yet.</div>}
-          {logs.slice().reverse().map((entry, idx) => (
-            <div className="list-item" key={idx}>
-              <div style={{ fontWeight: 700 }}>{formatSummary(entry)}</div>
-              <div className="meta">{entry.savedAt || ""}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="actions" style={{ marginTop: 12 }}>
-        <button className="btn-ghost" onClick={onBack}>BACK</button>
-        <button className="btn-danger" onClick={handleDelete}>Delete last record</button>
+    <div style={{ marginTop: 12 }}>
+      <strong>Pending / Latest</strong>
+      <div className="summary" style={{ marginTop: 8 }}>
+        {last ? formatDetailed(last) : "No records."}
       </div>
     </div>
-  );
+
+    {/* ACTION BUTTONS MOVED HERE */}
+    <div className="actions" style={{ marginTop: 12 }}>
+      <button className="btn-ghost" onClick={onBack}>BACK</button>
+      <button className="btn-danger" onClick={handleDelete}>Delete last record</button>
+      <button className="btn-ghost" onClick={handleResetPostState}>Reset POST state</button>
+    </div>
+
+    <div style={{ marginTop: 12 }}>
+      <strong>History</strong>
+      <div className="list" style={{ marginTop: 8 }}>
+        {logs.length === 0 && <div className="list-item">No history yet.</div>}
+        {logs.slice().reverse().map((entry, idx) => (
+          <div className="list-item" key={idx}>
+            <div style={{ fontWeight: 700 }}>{formatSummary(entry)}</div>
+            <div className="meta">{entry.savedAt || ""}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
 }
 
 function formatSummary(e) {
@@ -93,4 +102,10 @@ function formatDetailed(e) {
   }
 
   return lines.join("\n");
+}
+
+function handleResetPostState() {
+  if (!confirm("Reset POST watermark? Already-posted records may be sent again.")) return;
+    setLastPostedAt(null); 
+    alert("POST watermark cleared.");
 }

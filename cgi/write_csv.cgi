@@ -24,7 +24,13 @@ BODY="$(cat)"
 
 # Create file with header if it does not exist
 if [ ! -f "$CSV_FILE" ]; then
-  printf "%s\n" "Mileage;startDate;startTime;endDate;endTime;kWh;cost;notes" > "$CSV_FILE"
+
+  # Write UTF-8 BOM so Excel detects encoding correctly
+  printf '\xEF\xBB\xBF' > "$CSV_FILE"
+
+  # Write CSV header line
+  printf "%s\n" "Mileage;startDate;startTime;endDate;endTime;startPct;endPct;startRange;endRange;Consumption;note" \
+  >> "$CSV_FILE"
 fi
 
 # Append received CSV lines safely
