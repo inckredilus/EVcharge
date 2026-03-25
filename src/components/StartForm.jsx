@@ -5,7 +5,8 @@ import {
   replaceLastLog,
   parseDateInput,
   parseTimeInput,
-  isValidPct
+  isValidPct,
+  isCompleteLog  
 } from "../utils.js";
 
 export default function StartForm({ onDone, onCancel, last, isEdit }) {
@@ -101,7 +102,7 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
 
     // --- Always update START fields ---
     const entry = {
-      ...base, // 🔑 preserve existing values
+      ...base, // preserve existing values
 
       startDate: startDateIso,
       startTime: startTimeNorm,
@@ -161,6 +162,10 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
 
     // --- FINAL VALIDATION (only if trying to complete) ---
     const isComplete =
+      entry.startDate &&
+      entry.startTime &&
+      entry.StartPct !== "" &&
+      entry.StartRange !== "" &&
       entry.endDate &&
       entry.endTime &&
       entry.endPct !== "" &&
@@ -168,6 +173,9 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
       entry.Consumption !== "" &&
       entry.Mileage !== "";
 
+    const wasComplete = isEdit && last ? isCompleteLog(last) : false;
+    const nowComplete = isCompleteLog(entry);
+    
     if (isComplete) {
       // enforce mileage ONLY when completing
       if (entry.Mileage === "" || entry.Mileage === null) {
@@ -179,10 +187,21 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
     // --- Save ---
     if (isEdit) {
       replaceLastLog(entry);
-      alert(isComplete ? "Record completed." : "Progress saved.");
+
+      if (!wasComplete && nowComplete) {
+        alert("Record completed.");
+      } else {
+        alert("Progress saved.");
+      }
+
     } else {
       appendLog(entry);
-      alert(isComplete ? "Full session saved." : "Start entry saved.");
+
+      if (nowComplete) {
+        alert("Full session saved.");
+      } else {
+        alert("Start entry saved.");
+      }
     }
 
     onDone();
