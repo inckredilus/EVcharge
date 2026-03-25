@@ -72,6 +72,7 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
      Validate & Save
      ========================= */
   function validateAndSave() {
+    // --- Basic START validation (always required) ---
     if (
       !form.startDate ||
       !form.startTime ||
@@ -91,62 +92,97 @@ export default function StartForm({ onDone, onCancel, last, isEdit }) {
     }
 
     if (!isValidPct(form.startPct)) {
-      alert("Start percentage must be a number between 0 and 100.");
+      alert("Start percentage must be 0–100.");
       return;
-    }    
+    }
 
+    // --- Start from existing record if editing ---
+    const base = isEdit && last ? { ...last } : {};
+
+    // --- Always update START fields ---
     const entry = {
+      ...base, // 🔑 preserve existing values
+
       startDate: startDateIso,
       startTime: startTimeNorm,
       startIso: `${startDateIso}T${startTimeNorm}`,
       startPct: Number(form.startPct),
       startRange: Number(form.startRange),
-      Mileage: form.Mileage === "" ? "" : Number(form.Mileage),
-      endDate: "",
-      endTime: "",
-      endIso: "",
-      endPct: "",
-      endRange: "",
-      Consumption: "",
+
+      // Mileage: allow empty for start, but preserve if already set
+      Mileage:
+        form.Mileage === ""
+          ? base.Mileage ?? ""
+          : Number(form.Mileage),
+
       note: form.note.trim(),
       savedAt: new Date().toISOString()
     };
 
-    const hasEnd =
-      form.endDate &&
-      form.endTime &&
-      form.endPct !== "" &&
-      form.endRange !== "" &&
-      form.Consumption !== "";
-
-    if (hasEnd) {
-      const endDateIso = parseDateInput(form.endDate);
-      const endTimeNorm = parseTimeInput(form.endTime);
-
-      if (!endDateIso || !endTimeNorm) {
-        alert("Invalid end date or time.");
+    // --- Update END fields ONLY if provided ---
+    if (form.endDate) {
+      const d = parseDateInput(form.endDate);
+      if (!d) {
+        alert("Invalid end date.");
         return;
       }
+      entry.endDate = d;
+    }
 
+    if (form.endTime) {
+      const t = parseTimeInput(form.endTime);
+      if (!t) {
+        alert("Invalid end time.");
+        return;
+      }
+      entry.endTime = t;
+    }
+
+    // Build endIso only if both exist
+    if (entry.endDate && entry.endTime) {
+      entry.endIso = `${entry.endDate}T${entry.endTime}`;
+    }
+
+    if (form.endPct !== "") {
       if (!isValidPct(form.endPct)) {
-        alert("End percentage must be a number between 0 and 100.");
+        alert("End percentage must be 0–100.");
         return;
       }
-
-      entry.endDate = endDateIso;
-      entry.endTime = endTimeNorm;
-      entry.endIso = `${endDateIso}T${endTimeNorm}`;
       entry.endPct = Number(form.endPct);
+    }
+
+    if (form.endRange !== "") {
       entry.endRange = Number(form.endRange);
+    }
+
+    if (form.Consumption !== "") {
       entry.Consumption = Number(form.Consumption);
     }
 
+    // --- FINAL VALIDATION (only if trying to complete) ---
+    const isComplete =
+      entry.endDate &&
+      entry.endTime &&
+      entry.endPct !== "" &&
+      entry.endRange !== "" &&
+      entry.Consumption !== "" &&
+      entry.Mileage !== "";
+
+    if (isComplete) {
+      // enforce mileage ONLY when completing
+      if (entry.Mileage === "" || entry.Mileage === null) {
+        alert("Mileage is required to complete the record.");
+        return;
+      }
+    }
+
+    // --- Save ---
     if (isEdit) {
       replaceLastLog(entry);
-      alert("Record updated.");
+      alert(isComplete ? "Record completed." : "Progress saved.");
     } else {
       appendLog(entry);
-      alert(hasEnd ? "Full session saved." : "Start entry saved (pending).");
+      alert(isComplete ? "Full session saved." : "Start entry saved.");
     }
 
     onDone();

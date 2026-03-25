@@ -27,15 +27,15 @@ export default function Home({
   let infoText = "";
   if (!hasAny) {
     infoText = "No charging record exists yet — ready to start your first one.";
-  } else if (pending) {
-    infoText = "Last charging log not completed yet — please complete it or delete it.";
+  } else if (!complete) {    // changed from pending to NOT complete
+    infoText = "A charging log is in progress — continue editing or complete it.";
   } else {
     infoText = "Ready to start a new charging record.";
   }
 
   return (
     <div className="card">
-      <h2>EV Charge Logger v1.3.0</h2>
+      <h2>EV Charge Logger v1.4.0</h2>
 
       <div className="header">
         <button className="btn btn-start" onClick={goStart} disabled={!startEnabled}>

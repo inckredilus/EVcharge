@@ -207,7 +207,7 @@ export function isoToHhMm(iso) {
 export function isPendingStart(log) {
   if (!log) return false;
 
-  const endFields = [
+/*  const endFields = [
     "endDate",
     "endTime",
     "endPct",
@@ -220,7 +220,10 @@ export function isPendingStart(log) {
       return false;
     }
   }
-  return true;
+  return true; */
+
+  // Pending = anything that's not a complete log, i.e. missing any required start or end field
+  return !!log && !isCompleteLog(log);
 }
 
 export function isCompleteLog(log) {

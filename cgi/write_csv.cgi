@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/sh
 # ---------------------------------------------------------
 # EVcharge - CGI endpoint
 # Receives CSV payload via POST and appends to data file
